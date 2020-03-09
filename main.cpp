@@ -18,10 +18,7 @@ using duration = std::chrono::steady_clock::duration;
 class user_time
 {
 public:
-    user_time()
-        : m_max_time(24h)
-    {
-    }
+    user_time() = default;
     user_time(duration max_time)
         : m_max_time(max_time)
     {
@@ -53,13 +50,14 @@ public:
     }
     bool maxed_out()
     {
-        return total_time() > m_max_time;
+        return m_max_time != 0s
+            && total_time() > m_max_time;
     }
 private:
-    bool m_logged_in;
+    bool m_logged_in = false;
     time_point m_login_time;
     duration m_login_duration;
-    duration m_max_time;
+    duration m_max_time = 0s;
 };
 std::map<std::string, user_time> user_times;
 
@@ -76,16 +74,6 @@ decltype(auto) new_users()
         if (u.size() > 0)
             users.insert(u);
     }
-
-    // std::ifstream utmp_file("/var/run/utmp", std::ios::binary);
-    // while (utmp_file)
-    // {
-    //     utmp u;
-    //     utmp_file.read(reinterpret_cast<char*>(&u), sizeof(utmp));
-    //     if (u.ut_type != USER_PROCESS)
-    //         continue;
-    //     users.insert(u.ut_user);
-    // }
 
     return users;
 }
@@ -125,15 +113,15 @@ void update()
 void read_config()
 {
     std::ifstream file("config.json");
-    std::string str(
-        std::istreambuf_iterator<char>(file),
-        std::istreambuf_iterator<char>());
+    std::string str{std::istreambuf_iterator<char>(file),
+            std::istreambuf_iterator<char>()};
     std::cout << str;
     for (auto u : json::parse(str))
     {
         std::string username = u["username"];
         int max_time = u["max_time"];
-        user_times[username] = std::chrono::duration_cast<duration>(std::chrono::seconds(max_time));
+        user_times[username] =
+            std::chrono::duration_cast<duration>(std::chrono::seconds(max_time));
         std::cout << "Limit user: " << username
                   << " to: " << max_time << " seconds" << std::endl;
     }
@@ -143,12 +131,17 @@ void check_for_violators()
 {
     for (auto u : user_times)
     {
-        if (u.second.maxed_out())
+        if (u.second.logged_in() &&
+            u.second.maxed_out())
         {
+            std::cout << "Logging out user: " << u.first << std::endl;
             std::stringstream ss;
             ss << "pkill -u " << u.first;
             std::system(ss.str().c_str());
         }
+        std::string warning =
+            "zenity --warning --no-wrap --text=\"Your daily computer "
+            "time is almost complete. You are about to be logged out.\"";
     }
 }
 

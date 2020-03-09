@@ -1,4 +1,5 @@
 [
-  {"username":"testuser", "max_time":"10"},
-  {"username":"howdy",    "max_time":"10"},
+  {"username":"henrygibson", "max_time":10},
+  {"username":"libbygibson", "max_time":10},
+  {"username":"maryjanegibson", "max_time":10}
 ]
