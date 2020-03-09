@@ -1,5 +1,8 @@
-[
-  {"username":"henrygibson", "max_time":10},
-  {"username":"libbygibson", "max_time":10},
-  {"username":"maryjanegibson", "max_time":10}
-]
+{
+  "warning_time":300,
+  "users":[
+    {"username":"henrygibson", "max_time":10},
+    {"username":"libbygibson", "max_time":10},
+    {"username":"maryjanegibson", "max_time":10}
+  ]
+}

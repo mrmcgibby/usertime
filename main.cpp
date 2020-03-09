@@ -15,6 +15,9 @@ using namespace std::literals;
 using time_point = std::chrono::time_point<std::chrono::steady_clock>;
 using duration = std::chrono::steady_clock::duration;
 
+duration g_warning_time;
+bool g_simulate = false;
+
 class user_time
 {
 public:
@@ -53,11 +56,27 @@ public:
         return m_max_time != 0s
             && total_time() > m_max_time;
     }
+    void warn()
+    {
+        if (m_max_time == 0s)
+            return;
+        if (m_max_time - total_time() > g_warning_time)
+            return;
+        if (m_warned)
+            return;
+
+        std::string warning =
+            "zenity --warning --no-wrap --text=\"Your daily computer "
+            "time is almost complete. You are about to be logged out.\" &";
+        std::system(warning.c_str());
+        m_warned = true;
+    }
 private:
     bool m_logged_in = false;
     time_point m_login_time;
     duration m_login_duration;
     duration m_max_time = 0s;
+    bool m_warned = false;
 };
 std::map<std::string, user_time> user_times;
 
@@ -115,8 +134,8 @@ void read_config()
     std::ifstream file("config.json");
     std::string str{std::istreambuf_iterator<char>(file),
             std::istreambuf_iterator<char>()};
-    std::cout << str;
-    for (auto u : json::parse(str))
+    json conf = json::parse(str);
+    for (auto u : conf["users"])
     {
         std::string username = u["username"];
         int max_time = u["max_time"];
@@ -125,28 +144,43 @@ void read_config()
         std::cout << "Limit user: " << username
                   << " to: " << max_time << " seconds" << std::endl;
     }
+    int wt = conf["warning_time"];
+    g_warning_time = duration(wt);
+    std::cout << "Warn user at: "
+              << std::chrono::duration_cast<duration>(g_warning_time).count()
+              << " seconds" << std::endl;
+}
+
+void force_logout(const std::string& username)
+{
+    std::cout << "Logging out user: " << username << std::endl;
+    std::stringstream ss;
+    ss << "pkill -u " << username;
+    if (g_simulate)
+        std::cout << ss.str() << std::endl;
+    else
+        std::system(ss.str().c_str());
 }
 
 void check_for_violators()
 {
     for (auto u : user_times)
     {
-        if (u.second.logged_in() &&
-            u.second.maxed_out())
+        if (u.second.logged_in())
         {
-            std::cout << "Logging out user: " << u.first << std::endl;
-            std::stringstream ss;
-            ss << "pkill -u " << u.first;
-            std::system(ss.str().c_str());
+            u.second.warn();
+            if (u.second.maxed_out())
+            {
+                force_logout(u.first);
+            }
         }
-        std::string warning =
-            "zenity --warning --no-wrap --text=\"Your daily computer "
-            "time is almost complete. You are about to be logged out.\"";
     }
 }
 
 int main(int argc, char** argv)
 {
+    if (argc == 2)
+        g_simulate = (std::string(argv[1]) == "-s");
     read_config();
     while (true)
     {
