@@ -60,7 +60,7 @@ public:
     {
         if (m_max_time == 0s)
             return;
-        if (m_max_time - total_time() > g_warning_time)
+        if (remaining() > g_warning_time)
             return;
         if (m_warned)
             return;
@@ -70,6 +70,10 @@ public:
             "time is almost complete. You are about to be logged out.\" &";
         std::system(warning.c_str());
         m_warned = true;
+    }
+    duration remaining()
+    {
+        return m_max_time - total_time();
     }
 private:
     bool m_logged_in = false;
@@ -145,9 +149,9 @@ void read_config()
                   << " to: " << max_time << " seconds" << std::endl;
     }
     int wt = conf["warning_time"];
-    g_warning_time = duration(wt);
+    g_warning_time = std::chrono::seconds(wt);
     std::cout << "Warn user at: "
-              << std::chrono::duration_cast<duration>(g_warning_time).count()
+              << std::chrono::duration_cast<std::chrono::seconds>(g_warning_time).count()
               << " seconds" << std::endl;
 }
 
@@ -164,7 +168,7 @@ void force_logout(const std::string& username)
 
 void check_for_violators()
 {
-    for (auto u : user_times)
+    for (auto& u : user_times)
     {
         if (u.second.logged_in())
         {
@@ -181,6 +185,8 @@ int main(int argc, char** argv)
 {
     if (argc == 2)
         g_simulate = (std::string(argv[1]) == "-s");
+    if (g_simulate)
+        std::cout << "Simulating" << std::endl;
     read_config();
     while (true)
     {

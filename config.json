@@ -1,8 +1,8 @@
 {
-  "warning_time":300,
+  "warning_time":55,
   "users":[
-    {"username":"henrygibson", "max_time":10},
-    {"username":"libbygibson", "max_time":10},
-    {"username":"maryjanegibson", "max_time":10}
+    {"username":"henrygibson", "max_time":60},
+    {"username":"libbygibson", "max_time":60},
+    {"username":"maryjanegibson", "max_time":60}
   ]
 }
